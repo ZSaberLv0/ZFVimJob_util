@@ -71,8 +71,8 @@ function! ZFJobUtil_AndroidRun(params, ...)
     if !empty(get(a:params, 'httpServer', {}))
         call add(jobList, {
                     \   'jobCmd' : [
-                    \     printf('silent! ZFHttpServerStop %s', a:params['httpServer']['port']),
-                    \     printf('ZFHttpServerStart %s "%s"', a:params['httpServer']['port'], a:params['httpServer']['path']),
+                    \     printf('silent! call ZFHttpServerStop(%s)', a:params['httpServer']['port']),
+                    \     printf('call ZFHttpServerStart(%s, "%s")', a:params['httpServer']['port'], a:params['httpServer']['path']),
                     \   ],
                     \ })
         call add(jobList, {
@@ -205,7 +205,7 @@ function! s:onExit(task, jobStatus, exitCode)
 
     if !empty(get(a:task['params'], 'httpServer', {}))
         try
-            silent! execute printf('ZFHttpServerStop %s'
+            silent! execute printf('call ZFHttpServerStop(%s)'
                         \ , a:task['params']['httpServer']['port']
                         \ )
         catch
