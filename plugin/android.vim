@@ -1,7 +1,12 @@
 
 " params: {
 "   'deviceFilter' : ['192\.168\.xx\.xx'], // (optional) list of devices (regexp) to filter
-"   'apkBuild' : ['path_to_run_assembleDebug'], // (optional) list of path to build apk
+"   'apkBuild' : [ // (optional) list of tasks to build apk, can be (Dict)jobOption or (string)path_to_build
+"     'path_to_run_assembleDebug',
+"     {
+"       'jobCmd' : 'xxx',
+"     },
+"   ],
 "   'filePush' : [ // (optional) list of files to push
 "     {
 "       'from' : 'local_path',
@@ -43,10 +48,14 @@ function! ZFJobUtil_AndroidRun(params, ...)
 
     if !empty(get(a:params, 'apkBuild', []))
         for item in a:params['apkBuild']
-            call add(jobList, {
-                        \   'jobCmd' : './gradlew assembleDebug',
-                        \   'jobCwd' : item,
-                        \ })
+            if type(item) == type('')
+                call add(jobList, {
+                            \   'jobCmd' : './gradlew assembleDebug',
+                            \   'jobCwd' : item,
+                            \ })
+            elseif type(item) == type({})
+                call add(jobList, item)
+            endif
         endfor
     endif
 
