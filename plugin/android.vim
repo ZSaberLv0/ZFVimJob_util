@@ -1,5 +1,8 @@
 
 " params: {
+"   'adbAsRoot' : 0/1,
+"   'adbCloseSELinux' : 0/1,
+"
 "   'deviceFilter' : ['192\.168\.xx\.xx'], // (optional) list of devices (regexp) to filter
 "   'apkBuild' : [ // (optional) list of tasks to build apk, can be (Dict)jobOption or (string)path_to_build
 "     'path_to_run_assembleDebug',
@@ -11,6 +14,12 @@
 "     {
 "       'from' : 'local_path',
 "       'to' : 'remote_path',
+"     },
+"   ],
+"   'filePermissionUpdate' : [ // (optional) list of files to update permission to apk's user
+"     {
+"       'path' : 'remote_path',
+"       'package' : 'com.xxx.xxx',
 "     },
 "   ],
 "   'httpServer' : { // (optional) start http server
@@ -59,6 +68,20 @@ function! ZFJobUtil_AndroidRun(params, ...)
         endfor
     endif
 
+    if get(a:params, 'adbAsRoot', 0)
+        call add(jobList, {
+                    \   'jobCmd' : 'adb root',
+                    \ })
+        call add(jobList, {
+                    \   'jobCmd' : 'adb remount',
+                    \ })
+    endif
+    if get(a:params, 'adbCloseSELinux', 0)
+        call add(jobList, {
+                    \   'jobCmd' : 'adb shell setenforce 0',
+                    \ })
+    endif
+
     if !empty(get(a:params, 'deviceFilter', []))
         call add(jobList, {
                     \   'jobCmd' : 'adb devices',
@@ -73,6 +96,16 @@ function! ZFJobUtil_AndroidRun(params, ...)
         for item in a:params['filePush']
             call add(jobList, {
                         \   'jobCmd' : printf('adb push "%s" "%s"', item['from'], item['to']),
+                        \ })
+        endfor
+    endif
+
+    if !empty(get(a:params, 'filePermissionUpdate', []))
+        for item in a:params['filePermissionUpdate']
+            call add(jobList, {
+                        \   'jobCmd' : [
+                        \     printf("call ZFJobUtil_AndroidRun_filePermissionUpdate('%s', '%s')", item['path'], item['package'])
+                        \   ],
                         \ })
         endfor
     endif
@@ -160,6 +193,18 @@ function! s:deviceFilter_checkTask(task, jobStatus)
                     \   'output' : 'no suitable device found',
                     \ }
     endif
+endfunction
+
+function! ZFJobUtil_AndroidRun_filePermissionUpdate(path, package)
+    let info = system(printf('adb shell pm list packages -U | grep %s', a:package))
+    let uid = split(info, ':')[-1]
+    if empty(uid)
+        return
+    endif
+    let uid = str2nr(uid - 10000)
+    let name = printf('u0_a%s', uid)
+
+    call system(printf('adb shell chown %s:%s %s', name, name, a:path))
 endfunction
 
 function! s:apkLogFilter_onOutputFilter(task, jobStatus, textList, type)
