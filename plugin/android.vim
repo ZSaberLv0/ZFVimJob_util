@@ -196,7 +196,7 @@ function! s:deviceFilter_checkTask(task, jobStatus)
 endfunction
 
 function! ZFJobUtil_AndroidRun_filePermissionUpdate(path, package)
-    let info = system(printf('adb shell pm list packages -U | grep %s', a:package))
+    let info = system(printf('adb shell pm list packages | grep %s', a:package))
     let uid = split(info, ':')[-1]
     if empty(uid)
         return
